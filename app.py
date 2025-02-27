@@ -8,6 +8,7 @@ from flask import Flask, request, render_template, flash, redirect, url_for
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+GOOGLE_DRIVE_FOLDER_ID = "1ft_sZijjKaKzIbmvXeUPIaziQE6ayIZn"
 
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -56,7 +57,7 @@ def upload_to_drive(filepath, filename):
     """Uploads file to Google Drive"""
     file_metadata = {
         "name": filename,
-        "parents": ["1ft_sZijjKaKzIbmvXeUPIaziQE6ayIZn"]  # Replace with your actual Google Drive folder ID
+        "parents": [GOOGLE_DRIVE_FOLDER_ID]  # Replace with your actual Google Drive folder ID
     }
     media = MediaFileUpload(filepath, mimetype="application/octet-stream")
     uploaded_file = drive_service.files().create(
