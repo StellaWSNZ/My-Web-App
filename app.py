@@ -7,15 +7,17 @@ from msal import ConfidentialClientApplication
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-# Load credentials from environment variables
+# Load credentials from Render environment variables
 CLIENT_ID = os.getenv("ONEDRIVE_CLIENT_ID")
 CLIENT_SECRET = os.getenv("ONEDRIVE_CLIENT_SECRET")
 TENANT_ID = os.getenv("ONEDRIVE_TENANT_ID")
-REDIRECT_URI = "http://localhost:5000/callback"
+
+REDIRECT_URI = "http://localhost:5000/callback"  # Change this if deploying to Render
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPES = ["Files.ReadWrite", "offline_access"]
 ONEDRIVE_FOLDER = "FOLDER"  # Change to your actual folder name in OneDrive
 
+# Initialize Microsoft Authentication
 msal_app = ConfidentialClientApplication(CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET)
 
 @app.route("/")
@@ -35,16 +37,27 @@ def callback():
     token_response = msal_app.acquire_token_by_authorization_code(code, SCOPES, redirect_uri=REDIRECT_URI)
 
     if "access_token" in token_response:
-        session["access_token"] = token_response["access_token"]
+        session["access_token"] = token_response["access_token"]  # ✅ Store token in session
         flash("Logged in successfully!", "success")
     else:
         flash("Login failed!", "danger")
 
     return redirect(url_for("index"))
 
+@app.route("/logout")
+def logout():
+    """Log out user"""
+    session.pop("access_token", None)
+    flash("Logged out successfully!", "info")
+    return redirect(url_for("index"))
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
     """Handle file upload and send to OneDrive"""
+    if "access_token" not in session:
+        flash("You must log in first!", "danger")
+        return redirect(url_for("login"))  # ✅ Redirects to login if not logged in
+
     if "file" not in request.files:
         flash("No file part!", "danger")
         return redirect(url_for("index"))
@@ -81,7 +94,7 @@ def upload_to_onedrive(file):
 
     response = requests.put(upload_url, headers=headers, data=file.read())
 
-    print("OneDrive Response:", response.status_code, response.json())
+    print("OneDrive Response:", response.status_code, response.json())  # ✅ Debugging
 
     if response.status_code in [200, 201]:
         return response.json().get("id")
